@@ -1,6 +1,7 @@
 #include "polyn2.h"
 
 #include <string>
+#include <fstream>
 
 // SLE - system of linear equations
 
@@ -28,7 +29,7 @@ vector<PolynomialOfDegree2> GetSLE(size_t n, PolynomialOfDegree2 P) {
 }
 
 void PrintSLE(vector<PolynomialOfDegree2> System) {
-    cout << "Разложение на линейные полиномы:" << endl;
+    cout << "Разложение на систему линейных полиномов:" << endl;
     for (size_t i = 0; i < System.size(); ++i) {
         if (i != System.size() - 1) {
             cout << 'g' << i + 1 << " = ";
@@ -39,7 +40,7 @@ void PrintSLE(vector<PolynomialOfDegree2> System) {
     }
 }
 
-void SolveSLE(size_t n, vector<PolynomialOfDegree2> G) {
+vector<size_t> SolveSLE(size_t n, vector<PolynomialOfDegree2> G, bool printPeriods = true) {
     vector<size_t> answer(pow(2, n));
     for (size_t i = 0; i < answer.size(); ++i) {   // берем множество всех векторов длины N
         answer[i] = i;
@@ -48,24 +49,112 @@ void SolveSLE(size_t n, vector<PolynomialOfDegree2> G) {
         answer = G[i].Periods(answer);          // каждая функция "сужает" множество возможных периодов
     }
 
-    cout << "Периоды полинома P:" << endl;
-    for (size_t i = 0; i < answer.size(); ++i) {
-        cout << '{';
-        for (size_t j = 0; j < n; ++j) {
-            cout << (answer[i] >> j) % 2;
-            if (j < n - 1) {
-                cout << ", ";
-            }
+    if (printPeriods) {
+        cout << "Периоды полинома:" << endl;
+        for (size_t i = 1; i <= n; i++) {
+            cout << " p" << i;
         }
-        cout << "}" << endl;
+        cout << endl;
+        for (size_t i = 0; i < answer.size(); ++i) {
+            cout << '{';
+            for (size_t j = 0; j < n; ++j) {
+                cout << (answer[i] >> j) % 2;
+                if (j < n - 1) {
+                    cout << ", ";
+                }
+            }
+            cout << "}" << endl;
+        }
+        cout << endl;
     }
-    cout << endl;
+
+    return answer;
 }
 
 void PrintCommands() {
-    cout << "Enter the command: Find the period     - \"F\" "    << endl;
-    cout << "                   Make tests          - \"TEST\" " << endl;
-    cout << "                   Finish the program  - \"END\" "  << endl;
+    cout << "Введите команду: Найти период полинома - \"F\" "    << endl;
+    cout << "                 Запустить тесты       - \"TEST\" " << endl;
+    cout << "                 Завершить программу   - \"END\" "  << endl;
+}
+
+size_t ParsNum (string &s, size_t &i) {
+    size_t number = 0;
+    while (i < s.size() && s[i] >= '0' && s[i] <= '9') {
+        number = number * 10 + s[i++] - '0';
+    }
+    return number;
+}
+
+PolynomialOfDegree2 ParsPolynomial(string &s) {
+    bool c0 = 0; 
+    vector<size_t> c1;
+    vector<pair<size_t, size_t>> c2;
+
+    size_t i = 0;
+    size_t x1, x2;
+
+    while (i < s.size()) {
+        if (s[i] == '+') {
+            i++;
+        }
+        if (s[i] == '1') {
+            c0 = 1;
+            i++;
+            continue;
+        }
+        x1 = ParsNum(s, ++i);
+        if (i == s.size() || s[i] == '+') {
+            c1.push_back(x1);
+            continue;
+        }
+        x2 = ParsNum(s, ++i);
+        c2.push_back(make_pair(x1, x2));
+    }
+    PolynomialOfDegree2 p(c0, c1, c2);
+    return p;
+}
+
+void MakeTests() {
+    ifstream polyns("polyns.txt");
+    ifstream periods("periods.txt");
+    if (polyns.is_open() && periods.is_open()) {
+        string polyn, period;
+        PolynomialOfDegree2 p;
+        vector<PolynomialOfDegree2> system;
+    
+        while (getline(polyns, polyn) && getline(periods, period)) {
+            cout << polyn << endl;
+            cout << period << endl;
+            vector<size_t> programAnswer, trueAnswer;
+            PolynomialOfDegree2 p = ParsPolynomial(polyn);
+            system = GetSLE(6, p);
+            programAnswer = SolveSLE(6, system, false);
+            size_t i = 0;
+            while (i < period.size() - 1) {
+                if (period[i] == ',') {
+                    i++;
+                }
+                trueAnswer.push_back(ParsNum(period, i));
+            }
+
+            if (programAnswer != trueAnswer) {
+                cout << "ОШИБКА:" << endl;
+                for (size_t i = 0; i < programAnswer.size(); i++) {
+                    cout << programAnswer[i] << ',';
+                }
+                cout << endl;
+                for (size_t i = 0; i < trueAnswer.size(); i++) {
+                    cout << trueAnswer[i] << ',';
+                }
+                cout << endl;
+                break;
+            }
+        }
+        polyns.close();
+        periods.close();
+    } else {
+        cout << "ОШИБКА: файл не открыт" << endl;
+    }
 }
 
 int main () {
@@ -77,10 +166,25 @@ int main () {
         cin >> command;
 
         if (command == "F") {
+            string s;
+            size_t n;
+            vector<PolynomialOfDegree2> system;
+
+            cout << "Введите число переменных:" << endl;
+            cin >> n;
+            cout << "Введите полином:" << endl;
+            cin >> s;
+            PolynomialOfDegree2 p = ParsPolynomial(s);
+            cout << "Полином:" << endl;
+            p.PrintPolyn();
+            system = GetSLE(n, p);
+            PrintSLE(system);
+            SolveSLE(n, system);
             continue;
         }
 
         if (command == "TEST") {
+            MakeTests();
             continue;
         }
 
@@ -88,21 +192,7 @@ int main () {
             break;
         }
 
-        cout << "Unknown command!" << endl;
+        cout << "ОШИБКА: неизвестная команда!" << endl;
     }
-    size_t n = 4; // число переменных: x_1, ... , x_n
-    /*PolynomialOfDegree2 P1(0, {1}, {{2,3}, 
-                            {6,3},{7,2},{10,1}, 
-                            {7,4},{8,3},{13,1}, 
-                            {7,5},{9,3},{14,1}, 
-                            {10,5},{12,3},{14,2}, 
-                            {13,5},{14,4},{15,3}}); */
-    PolynomialOfDegree2 P1(1, {1,2}, {{1,2}, {1,3}});
-    vector<PolynomialOfDegree2> system;
-    system = GetSLE(n, P1);
-    cout << "P = ";
-    P1.PrintPolyn(); 
-    PrintSLE(system);
-    SolveSLE(n, system);
     return 0;
 }
