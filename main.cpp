@@ -73,7 +73,6 @@ vector<size_t> SolveSLE(size_t n, vector<PolynomialOfDegree2> G, bool printPerio
 
 void PrintCommands() {
     cout << "Введите команду: Найти период полинома - \"F\" "    << endl;
-    cout << "                 Запустить тесты       - \"TEST\" " << endl;
     cout << "                 Завершить программу   - \"END\" "  << endl;
 }
 
@@ -114,49 +113,6 @@ PolynomialOfDegree2 ParsPolynomial(string &s) {
     return p;
 }
 
-void MakeTests() {
-    ifstream polyns("polyns.txt");
-    ifstream periods("periods.txt");
-    if (polyns.is_open() && periods.is_open()) {
-        string polyn, period;
-        PolynomialOfDegree2 p;
-        vector<PolynomialOfDegree2> system;
-    
-        while (getline(polyns, polyn) && getline(periods, period)) {
-            cout << polyn << endl;
-            cout << period << endl;
-            vector<size_t> programAnswer, trueAnswer;
-            PolynomialOfDegree2 p = ParsPolynomial(polyn);
-            system = GetSLE(6, p);
-            programAnswer = SolveSLE(6, system, false);
-            size_t i = 0;
-            while (i < period.size() - 1) {
-                if (period[i] == ',') {
-                    i++;
-                }
-                trueAnswer.push_back(ParsNum(period, i));
-            }
-
-            if (programAnswer != trueAnswer) {
-                cout << "ОШИБКА:" << endl;
-                for (size_t i = 0; i < programAnswer.size(); i++) {
-                    cout << programAnswer[i] << ',';
-                }
-                cout << endl;
-                for (size_t i = 0; i < trueAnswer.size(); i++) {
-                    cout << trueAnswer[i] << ',';
-                }
-                cout << endl;
-                break;
-            }
-        }
-        polyns.close();
-        periods.close();
-    } else {
-        cout << "ОШИБКА: файл не открыт" << endl;
-    }
-}
-
 int main () {
     string command;
 
@@ -180,11 +136,6 @@ int main () {
             system = GetSLE(n, p);
             PrintSLE(system);
             SolveSLE(n, system);
-            continue;
-        }
-
-        if (command == "TEST") {
-            MakeTests();
             continue;
         }
 
